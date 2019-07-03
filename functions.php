@@ -47,6 +47,74 @@ function calcNonce($data, $difficulty){
 }
 
 
+/**Returns the pseudo-address of a bitcoin wallet.
+ * @return string, the value of address.
+ */
+function bitcoinAdress() {
+    //https://en.bitcoin.it/wiki/List_of_address_prefixes
+    
+    //#1:
+    //version hex = 80,
+    // https://en.bitcoin.it/wiki/List_of_address_prefixes
+    
+    $version = 80;
+    
+    //#2:
+    //Random 32 bytes variable.
+    //with version.
+    //Convert to hex.
+    
+    for($i = 0; $i < 32; ++$i) {
+        
+        $byteArray[] = rand(0,255);
+        
+    }
+    
+    $hexa = $version;
+    
+    foreach ($byteArray as $byte){
+        
+        $hexa .= sprintf("%02X", $byte);
+        
+    }
+    
+    //#3:
+    //checksum - 4 byte.
+    //Checksum
+    //4 bytes da sha256(sha256(version+privateKey))
+    
+    $firstSha = hash('sha256', $hexa);
+    $secondSha = hash('sha256', $firstSha);
+    $checksum = strtoupper(substr($secondSha, 0,8));
+    $KeyChecksum = $hexa . $checksum;
+    
+    //#4:
+    //WIF - Wallet Import Format.
+    //Convert to base58
+    
+    $base58 = new Base58;
+    $privateKeyWIF  = $base58->encode($KeyChecksum);
+    $publicKey  = hash('ripemd160', $privateKeyWIF);
+    
+    //#5:
+    //Addresses
+    //A bitcoin address is in fact the hash of a public key, computed this way:
+    //Version = 1 byte of 0 (zero); on the test network, this is 1 byte of 111
+    //Key hash = Version concatenated with RIPEMD-160(SHA-256(public key))
+    //Checksum = 1st 4 bytes of SHA-256(SHA-256(Key hash))
+    //Bitcoin Address = Base58Encode(Key hash concatenated with Checksum)
+    //https://en.bitcoin.it/wiki/List_of_address_prefixes
+    
+    $address = "1";
+    $address .= hash('ripemd160', hash('sha256', $publicKey));
+    $checksumAddress = substr(hash('sha256', hash('sha256', $address)), 0,7);
+    $address .= $checksumAddress;
+    $BitcoinAddress = "1". $base58->encode($address);
+    
+    //Return Bitcoin Address
+    return $BitcoinAddress;
+}
+
 
 
 
