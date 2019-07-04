@@ -46,7 +46,6 @@ function calcNonce($data, $difficulty){
         return $nonce;
 }
 
-
 /**Returns the pseudo-address of a bitcoin wallet.
  * @return string, the value of address.
  */
@@ -113,6 +112,252 @@ function bitcoinAdress() {
     
     //Return Bitcoin Address
     return $BitcoinAddress;
+}
+
+/**Returns the pseudo-transaction blockchain address.
+ * @return string, the value of transaction.
+ */
+function transactionAddress() {
+    $transaction = str_shuffle("abcdefghijklmnopqrstuvyxwz012345678901234567890123456789abcdeftu");
+    return $transaction;
+}
+
+/**Returns the pseudo-amount value of a transaction.
+ * @return float, the value of amount.
+ */
+function generateAmount() {
+    
+    $luck = rand(0,10);
+    
+    switch ($luck) {
+        
+        case 10:
+            
+            //MAximum: 2.99 BTC
+            $number = rand(1000000, 299999999)/100000000;
+            
+            break;
+            
+        case 9:
+            
+            //MAximum: 0.99 BTC
+            $number = rand(100000, 99999999)/100000000;
+            
+            break;
+            
+        case 8:
+            
+            //MAximum: 0.049 BTC
+            $number = rand(10000, 4999999)/100000000;
+            
+            break;
+            
+        default:
+            
+            //MAximum: 0.00050000 BTC
+            $number = rand(1000, 50000)/100000000;
+            
+            break;
+            
+    }
+    
+    $amount = number_format($number, 8);
+    
+    return floatval($amount);
+    
+}
+
+/**Returns json with transactions.
+ * Based on Maximum of Wallets, Maximum of Transactions.
+ * And Luck to get change.
+ *@param MaxWallets int <p>
+ *The Maxymum number of wallets on input/output transactions.
+ *ex.: 50</p>
+ *@param maxTransactions int<p>
+ *The Maxymum number of transactions on array.
+ *ex.: 40</p>
+ *@param luckChange int<p>
+ *The chance of a transaction return change.
+ *ex.: 80</p>
+ *@return array, with all Transactions.
+ */
+function generateTransactions($MaxWallets,$maxTransactions, $luckChange) {
+    
+    //TRANSFER OF PARAMETERS
+    
+    $RandMaxWallets         =   $MaxWallets;
+    $transactionsAmountMax  =   $maxTransactions;
+    $LuckWinChange          =   $luckChange;
+    
+    //GLOBAL VARIABLES
+    
+    $transactions_hash = "";
+    $transactions_hash_global = "";
+    
+    
+    //NUMBER OF TRANSACTIONS
+        
+        $numberOfTransactions = rand(1,$transactionsAmountMax);
+    
+    for($itransactions=0;$itransactions<$numberOfTransactions;$itransactions++){
+        
+        //IF THE OUTPUT AMOUNT IS LARGER THAN THE INPUT,
+        //RUN THE CODE UNTIL IT GETS HIGHER INPUT THAN THE OUTPUT
+        a:
+        
+        
+        //GET ADDRESS OF TRANSACTION
+        
+        $transactionAddress = transactionAddress();
+        
+        
+        //INPUT
+        
+        $randInput = rand(1,$RandMaxWallets);
+        $TotAmountInput =0;
+        
+        for($i=0; $i<$randInput;$i++){
+            
+            $btcAddInput = bitcoinAdress();
+            
+            do{
+                
+                $amountInput =  generateAmount();
+                $isSciInput = $amountInput;
+                
+            }while(strstr($isSciInput,"-"));
+            
+            $transactions_hash .= $transaction[$transactionAddress]['INPUT']['INPUT_ACTIVITY'][$btcAddInput] = $amountInput;
+            $TotAmountInput += $amountInput;
+            
+        }
+        
+        //OUTPUT
+        
+        $randOutput = rand(1,$RandMaxWallets);
+        $TotAmountOutput =0;
+        
+        for($i=0; $i<$randOutput;$i++){
+            
+            $btcAddOutput = bitcoinAdress();
+            
+            do{
+                
+                $amountOutput =  generateAmount();
+                $isSciOutput = $amountOutput;
+                
+            }while(strstr($isSciOutput,"-"));
+            
+            $transactions_hash .= $transaction[$transactionAddress]['OUTPUT']['OUTPUT_ACTIVITY'][$btcAddOutput] = $amountOutput;
+            $TotAmountOutput += $amountOutput;
+            
+        }
+        
+        //FEE
+        
+        //GLOBAL INPUT
+        $InputQtd  		= 	$randInput;
+        $inputAmount 	= 	$TotAmountInput;
+        
+        //GLOBAL OUTPUT
+        $OutputQtd 		= 	$randOutput;
+        $outputAmount 	= 	$TotAmountOutput;
+        
+        //FEE CALCULUS
+        $TransQtdTot = $InputQtd + $OutputQtd;
+        $TransBytes = ($TransQtdTot) * 92;
+        $TranFee = ($TransBytes * 62) /100000000;
+        
+        $transactions_hash .= $transaction[$transactionAddress]['FEE'] = $TranFee;
+        
+        //CHANGE
+        
+        $balance = ($inputAmount + $TranFee) - $outputAmount;
+        
+        if($balance > 0){
+            
+            $luckLostChange = rand(1,100);
+            
+            if($luckLostChange < $LuckWinChange){
+                
+                //CREATE CHANGE
+                
+                $amountChange = $balance;
+                $btcAddChange = bitcoinAdress();
+                
+                $transactions_hash .= $transaction[$transactionAddress]['INPUT']['INPUT_ACTIVITY'][$btcAddChange] = 0;
+                $transactions_hash .= $transaction[$transactionAddress]['OUTPUT']['OUTPUT_ACTIVITY'][$btcAddChange] = $amountChange;
+                $transactions_hash .= $transaction[$transactionAddress]['CHANGE'] = $amountChange;
+                $transactions_hash .= $transaction[$transactionAddress]['LOST'] = 0;
+                $transactions_hash .= $transaction[$transactionAddress]['MINER'] = $TranFee;
+                
+            }
+            else{
+                
+                //LOST CHANGE
+                
+                $amountChange = $balance;
+                $lost = $amountChange;
+                $miner = $TranFee + $lost;
+                
+                $transactions_hash .= $transaction[$transactionAddress]['CHANGE'] = 0;
+                $transactions_hash .= $transaction[$transactionAddress]['LOST'] = $lost;
+                $transactions_hash .= $transaction[$transactionAddress]['MINER'] = $miner;
+                
+            }
+            
+            
+            
+            
+        }else{
+            
+            //IF THE OUTPUT AMOUNT IS LARGER THAN THE INPUT,
+            //RUN THE CODE UNTIL IT GETS HIGHER INPUT THAN THE OUTPUT.
+            //RETURN TO POINT A. AND UNSET VARIABLE TRANSACTION.
+            
+            unset($transaction);
+            goto a;
+            
+        }
+        
+        //UPTDATE GLOBAL INPUT
+        
+        $transactions_hash .= $transaction[$transactionAddress]['INPUT']['INPUT_TOTAL:']['INPUT_QTD'] = $InputQtd;
+        $transactions_hash .= $transaction[$transactionAddress]['INPUT']['INPUT_TOTAL:']['INPUT_AMOUNT'] = $inputAmount;
+        
+        //UPDATE GLOBAL OUTPUT
+        
+        $transactions_hash .= $transaction[$transactionAddress]['OUTPUT']['OUTPUT_TOTAL:']['OUTPUT_QTD'] = $OutputQtd;
+        $transactions_hash .= $transaction[$transactionAddress]['OUTPUT']['OUTPUT_TOTAL:']['OUTPUT_AMOUNT'] = $outputAmount + $amountChange;
+        
+        //HASH OF TRANSACTIONS
+        
+        $transactionHash = hash('SHA256', $transactions_hash);
+        $transaction[$transactionAddress]['HASH'] = $transactionHash;
+        
+        //TRANSACTIONS - GLOBAL
+        
+        $transactions_hash_global .= $transactions_hash;
+        
+        
+        //SET NEW VARIABLE TRANSACTIONS WITH ARRAY OF VARIABLE TRANSACTION.
+        
+        $transactions['TRANSACTIONS'][$itransactions] = $transaction;
+        
+        //RELEASE VARIABLE TRANSACTION AND RESET VARIABLE TRANSACTIONS_HASH
+        
+        unset($transaction);
+        $transactions_hash="";
+        
+    }
+    
+    //HASH OF TRANSACTIONS - GLOBAL
+    
+    $transactionHashGlobal = hash('SHA256', $transactions_hash_global);
+    $transactions['HASH_ALL_TRANSACTIONS'] = $transactionHashGlobal;
+    
+    return json_encode($transactions);
+    
 }
 
 
