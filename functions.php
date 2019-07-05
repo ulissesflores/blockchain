@@ -1,49 +1,49 @@
 <?php
-/**Returns the value of the nonce number.
- * Based on data and difficulty. 
+/**Returns the value of the nonce number and hash.
+ * Based on data and difficulty.
  *@param data string <p>
- *the data that will be used to calculate the nonce. 
+ *the data that will be used to calculate the nonce.
  * </p>
  * @param difficulty int<p>
  * a value between 1 and 5 to find the nonce.
  * </p>
- * @return int, the value of nonce.
+ * @return array, the value of nonce and hash.
  */
-function calcNonce($data, $difficulty){
-    //if the variable is null, the value 1 is defined for the variable, 
-    //if it is greater than 5, we will maintain 5.
-    //the difficulty will be kept below level five to ensure acceptable mining time.
+function calcNonce($data){
+
+    //the difficulty will be kept below level six to ensure acceptable mining time.
     
-        if      (   is_null($difficulty) )  {   $difficulty = 1;
-        
-        }elseif (   $difficulty >=6 )       {   $difficulty = 5;
-            
-        }
-        
-    //creates a variable with the amount of zeros required to validate a hash with 
+     $difficulty = 5;
+    
+    
+    
+    //creates a variable with the amount of zeros required to validate a hash with
     //the difficulty defined in the variable $ difficulty...
     
-        $zeros = $strZero = ""; 
-        
-        for ($i = 1; $i <= $difficulty; $i++) {
-            $zeros = $zeros . 1;
-            $strZero = $strZero . "0";
-        }
-        
-    //compares the first few characters of the hash and checks 
+    $zeros = $strZero = "";
+    
+    for ($i = 1; $i <= $difficulty; $i++) {
+        $zeros = $zeros . 1;
+        $strZero = $strZero . "0";
+    }
+    
+    //compares the first few characters of the hash and checks
     //the condition set by the difficulty.
     
-        $nonce = 1;
-        do {
-            $try = $data . $nonce; 
-            $hash = hash("sha256", $try);
-            $dific = substr($hash, 0, $difficulty);
-            $nonce++;
-            
-        } while($dific <> $zeros);
+    $nonce = 1;
+    do {
+        $try = $data . $nonce;
+        $hash = hash("sha256", $try);
+        $dific = substr($hash, 0, $difficulty);
+        $nonce++;
         
+    } while($dific <> $zeros);
+    
     //Return of nonce.
-        return $nonce;
+    $nonceArray['NUMBER'] = $nonce;
+    $nonceArray['HASH'] = str_replace("11111", "00000", $hash);
+    
+    return $nonceArray;
 }
 
 /**Returns the pseudo-address of a bitcoin wallet.
@@ -360,7 +360,91 @@ function generateTransactions($MaxWallets,$maxTransactions, $luckChange) {
     
 }
 
+/**Returns the value of the fee in satoshis.
+ *Based on number of transactions.
+ *@param NumberTransactions int <p>
+ *Number of transactions.
+ * </p>
+ * @return int, the value of fee in satoshis.
+ */
+function feeAmount($NumberTransactions) {
+    
+    $TransQtdTot = $NumberTransactions;
+    $TransBytes = ($TransQtdTot) * 92;  //average value of bytes per transaction (92 bytes-Pair of transaction).
+    $TranFee = ($TransBytes * 62) /100000000; //satoshis/bytes value for transactions confirmed in 60 min.
+    
+    return $TranFee;
+}
 
+/**Returns array whith transaction.
+ * Based on data and difficulty.
+ *@param walletAddressSender string <p>
+ *Address of Wallet Sender.
+ * </p>
+ * @param walletAddressReceiver string<p>
+ * Address of Wallet Receiver.
+ * </p>
+ * @param transferAmount int<p>
+ * Amount of transference.
+ * </p>
+ * @return array with transaction.
+ */
+function transfer($walletAddressSender, $walletAddressReceiver, $transferAmount) {
+    
+    //GET ADDRESS OF  TRANSACTION
+    
+    $transactionAddress  = transactionAddress();;
+    
+    //GET SHA256 HASH OF TRANSFER
+    
+    $data  = $transactionAddress . $walletAddressSender . $walletAddressReceiver . $transferAmount;
+    $transactionHash = hash('SHA256', $data);
+    
+    //INPUT/OUTPUT
+    
+    $transfer['INPUT'][] 							= $walletAddressSender;
+    $transfer['OUTPUT'][$walletAddressReceiver] 	= $transferAmount;
+    
+    //ARRAY TRANSACTION
+    
+    $transaction[$transactionAddress] = $transfer;
+    $transaction['HASH'] = $transactionHash;
+    
+    return  $transaction;
+    
+}
 
+/**Returns array whith transaction for the Genesis BLOCK.
+ * Based on data and difficulty.
+ * @param walletAddressReceiver string<p>
+ * Address of Wallet Receiver.
+ * </p>
+ * @param transferAmount int<p>
+ * Amount of transference.
+ * </p>
+ * @return array with transaction.
+ */
+function transferGenesis($walletAddressReceiver, $transferAmount) {
+    
+    //GET ADDRESS OF  TRANSACTION
+    
+    $transactionAddress  = transactionAddress();;
+    
+    //GET SHA256 HASH OF TRANSFER
+    
+    $data  = $transactionAddress . $walletAddressReceiver . $transferAmount;
+    $transactionHash = hash('SHA256', $data);
+    
+    //OUTPUT
+    
+    $transfer['OUTPUT'][$walletAddressReceiver] 	= $transferAmount;
+    
+    //ARRAY TRANSACTION
+    
+    $transaction[$transactionAddress] = $transfer;
+    
+    return  $transaction;
+    
+}
 
 ?>
